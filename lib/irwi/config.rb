@@ -39,8 +39,9 @@ class Irwi::Config
                      require 'irwi/paginators/none'
                      
                      self.paginator = Irwi::Paginators::None.new
-                   end	
+                   end  
   end
+
 
   def initialize
     @controller_name = 'wiki_pages'
