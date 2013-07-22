@@ -4,6 +4,7 @@ require 'rails_autolink' if defined?(Rails)
 module Irwi
 
   module Formatters
+    autoload :Redcarpet, 'irwi/formatters/redcarpet'
     autoload :BlueCloth, 'irwi/formatters/blue_cloth'
     autoload :RedCloth, 'irwi/formatters/red_cloth'
     autoload :SimpleHtml, 'irwi/formatters/simple_html'

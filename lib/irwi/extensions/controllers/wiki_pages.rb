@@ -77,7 +77,8 @@ module Irwi::Extensions::Controllers::WikiPages
       @page.creator = @current_user if @page.new_record? # Assign it's creator if it's new page
 
       if !params[:preview] && (params[:cancel] || @page.save)
-        redirect_to url_for( :action => :show, :path => @page.path.split('/') ) # redirect to new page's path (if it changed)
+        # redirect_to url_for( :action => :show, :path => @page.path.split('/') ) # redirect to new page's path (if it changed)
+        redirect_to redirect_path(:path => @page.path.split('/') ) # redirect to new page's path (if it changed)
       else
         render_template 'edit'
       end
@@ -88,7 +89,7 @@ module Irwi::Extensions::Controllers::WikiPages
 
       @page.destroy
 
-      redirect_to url_for( :action => :show )
+      redirect_to redirect_path
     end
 
     def all
@@ -107,53 +108,68 @@ module Irwi::Extensions::Controllers::WikiPages
     # Renders user-specified or default template
     def render_template( template )
       render "#{template_dir template}/#{template}", :status => (case template when 'no' then 404 when 'not_allowed' then 403 else 200 end)
+      end
+
+      # Initialize @current_user instance variable
+      def setup_current_user
+        @current_user = respond_to?( :current_user, true ) ? current_user : nil # Find user by current_user method or return nil
+      end
+
+      # Initialize @page instance variable
+      def setup_page
+        # @page = page_class.find_by_path_or_new( params[:path] || '' ) # Find existing page by path or create new
+        @page = @owner.wiki_pages.find_by_path_or_new( params[:path] || '' ) # Find existing page by path or create new
+      end
+
+      # Method, which called when user tries to visit
+      def not_allowed
+        render_template 'not_allowed'
+      end
+
+      # Check is it allowed for current user to see current page. Designed to be redefined by application programmer
+      def show_allowed?
+        true
+      end
+
+      # Check is it allowed for current user see current page history. Designed to be redefined by application programmer
+      def history_allowed?
+        show_allowed?
+      end
+
+      # Check is it allowed for current user edit current page. Designed to be redefined by application programmer
+      def edit_allowed?
+        show_allowed?
+      end
+
+      # Check is it allowed for current user destroy current page. Designed to be redefined by application programmer
+      def destroy_allowed?
+        edit_allowed?
+      end
+
+      def redirect_path(conf={})
+        if params[:project_id]
+          @owner = @company.projects.find(params[:project_id])
+          path = project_wiki_page_path(@owner,conf)
+        end
+        path
+      end
+
+      def set_owner
+        if params[:project_id]
+          @owner = @company.projects.find(params[:project_id])
+        end
+      end
+
     end
 
-    # Initialize @current_user instance variable
-    def setup_current_user
-      @current_user = respond_to?( :current_user, true ) ? current_user : nil # Find user by current_user method or return nil
-    end
+    def self.included( base )
+      base.send :extend, Irwi::Extensions::Controllers::WikiPages::ClassMethods
+      base.send :include, Irwi::Extensions::Controllers::WikiPages::InstanceMethods
 
-    # Initialize @page instance variable
-    def setup_page
-      @page = page_class.find_by_path_or_new( params[:path] || '' ) # Find existing page by path or create new
-    end
-
-    # Method, which called when user tries to visit
-    def not_allowed
-      render_template 'not_allowed'
-    end
-
-    # Check is it allowed for current user to see current page. Designed to be redefined by application programmer
-    def show_allowed?
-      true
-    end
-
-    # Check is it allowed for current user see current page history. Designed to be redefined by application programmer
-    def history_allowed?
-      show_allowed?
-    end
-
-    # Check is it allowed for current user edit current page. Designed to be redefined by application programmer
-    def edit_allowed?
-      show_allowed?
-    end
-
-    # Check is it allowed for current user destroy current page. Designed to be redefined by application programmer
-    def destroy_allowed?
-      edit_allowed?
+      base.before_filter :setup_current_user # Setup @current_user instance variable before each action
+      # Setup @page instance variable before each action
+      base.before_filter :set_owner,:setup_page, :only => [ :show, :history, :compare, :new, :edit, :update, :destroy, :add_attachment ]
+      base.helper_method :show_allowed?, :edit_allowed?, :history_allowed?, :destroy_allowed? # Access control methods are avaliable in views
     end
 
   end
-
-  def self.included( base )
-    base.send :extend, Irwi::Extensions::Controllers::WikiPages::ClassMethods
-    base.send :include, Irwi::Extensions::Controllers::WikiPages::InstanceMethods
-
-    base.before_filter :setup_current_user # Setup @current_user instance variable before each action
-    # Setup @page instance variable before each action
-    base.before_filter :setup_page, :only => [ :show, :history, :compare, :new, :edit, :update, :destroy, :add_attachment ]
-    base.helper_method :show_allowed?, :edit_allowed?, :history_allowed?, :destroy_allowed? # Access control methods are avaliable in views
-  end
-
-end

@@ -14,9 +14,9 @@ class Irwi::Config
 
   def formatter
     @formatter ||= begin
-                     require 'irwi/formatters/blue_cloth'
+                     require 'irwi/formatters/redcarpet'
                      
-                     self.formatter = Irwi::Formatters::BlueCloth.new
+                     self.formatter = Irwi::Formatters::Redcarpet.new
                    end	
   end
 
