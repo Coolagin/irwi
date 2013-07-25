@@ -93,7 +93,7 @@ module Irwi::Extensions::Controllers::WikiPages
     end
 
     def all
-      @pages = Irwi.config.paginator.paginate( page_class, :page => params[:page] ) # Loading and paginating all pages
+      @pages = Irwi.config.paginator.paginate( page_class, :page => params[:page], owner_id: params[:project_id], owner_type: 'Project') # Loading and paginating all pages
 
       render_template 'all'
     end
